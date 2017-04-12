@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>扫雷游戏</title>
+	<style>
+		*{
+			margin: 0;
+			padding: 0;
+		}
+		#wrap{
+			border:5px solid #f00;
+			width:500px;
+			height:500px;
+			margin:40px auto 0;
+			position:relative;
+		}
+		.shade,.txt{
+			position:absolute;
+			width:500px;
+			height:500px;
+			left:1px;
+			top:1px;
+			display:none;
+		}
+		.shade{
+			opacity:0.7;
+			z-index:6;
+			background:#000;
+		}
+		.txt{
+			z-index:9;
+			font-size:80px;
+			color:#fff;
+			line-height:500px;
+			text-align:center;
+			font-family:arial;
+		}
+		#wrap div{
+			position:absolute;
+			border:1px solid #000;
+			background:#aaa;
+			text-align:center;
+			cursor:pointer;
+		}
+	</style>
+</head>
+<body>
+	<div id="wrap">
+		<p class="shade"></p>
+		<p class="txt"></p>
+	</div>
+	<script>
+		var wrap = document.getElementById('wrap');
+		var p = wrap.getElementsByTagName('p');
+		var wrapWidth = parseInt(getStyle(wrap,'width'));
+		//设置阶数
+		var jie = 20;
+		wrap.style.fontSize = jie>15 ? '10px' : '12px';
+		//宽高
+		var wh = wrapWidth/jie;
+		var str = '';
+		for(var i=0;i<jie*jie;i++){
+			str += '<div style="width:'+ wh +'px;height:'+ wh +'px;line-height:'+ wh +'px;top:'+ Math.floor(i/jie)*wh +'px;left:'+ (i%jie)*wh +'px"></div>';
+		}
+		wrap.innerHTML += str;
+		var divs = wrap.getElementsByTagName('div');
+		//初始化
+		for(var i=0;i<Math.pow(jie,2);i++){
+			//给每个div设置默认值
+			divs[i].attr = {
+				id : i,
+				top : parseInt(divs[i].style.top),
+				left : parseInt(divs[i].style.left),
+				count : 0,
+				isClick : false,
+				isLei : false
+			};
+			//记录每个div周围的8个元素的坐标
+			divs[i].a = {
+				topLeft : {
+					t : parseInt(divs[i].attr.top - wh),
+					l : parseInt(divs[i].attr.left - wh)
+				},
+				top : {
+					t : parseInt(divs[i].attr.top - wh),
+					l : parseInt(divs[i].attr.left)
+				},
+				topRight : {
+					t : parseInt(divs[i].attr.top - wh),
+					l : parseInt(divs[i].attr.left + wh)
+				},
+				right : {
+					t : parseInt(divs[i].attr.top),
+					l : parseInt(divs[i].attr.left + wh)
+				},
+				rightBottom : {
+					t : parseInt(divs[i].attr.top + wh),
+					l : parseInt(divs[i].attr.left + wh)
+				},
+				bottom : {
+					t : parseInt(divs[i].attr.top + wh),
+					l : parseInt(divs[i].attr.left)
+				},
+				leftBottom : {
+					t : parseInt(divs[i].attr.top + wh),
+					l : parseInt(divs[i].attr.left - wh)
+				},
+				left : {
+					t : parseInt(divs[i].attr.top),
+					l : parseInt(divs[i].attr.left - wh)
+				}
+			}
+		}
+		//布雷
+		var leiArr = [];
+		var leiNum = Math.floor(jie*jie*0.1);
+		for(var i=0;i<leiNum;i++){
+			var lei = Math.floor(Math.random()*Math.pow(jie,2));
+			// console.log(lei);
+			leiArr.push(lei);
+			// console.log(leiArr.length,leiArr);
+			for(var j=0;j<leiArr.length-1;j++){
+				//表示已有
+				if(leiArr[j] == lei){
+					leiArr.pop();
+					i--;
+					break;
+				}
+			}
+			divs[leiArr[i]].attr.isLei = true;
+			// divs[leiArr[i]].style.background = 'url(img/01.jpg) no-repeat 100% 100%';
+			// divs[leiArr[i]].style.backgroundSize = 'cover';
+		}
+		
+		for(var i=0;i<divs.length;i++){
+			document.oncontextmenu = function(e){
+               e.preventDefault();
+           };
+           divs[i].onmousedown = function(e){
+               if(e.button == 2){
+               		this.style.background = 'url(img/02.jpg) no-repeat 100% 100%';
+                   	this.style.backgroundSize = 'cover';
+               }else if(e.button == 0){
+	               if(this.attr.isClick == false){
+						var clickedNum = 0;
+						if(this.attr.isLei == true){
+							for(var j=0;j<leiArr.length;j++){
+								divs[leiArr[j]].style.background = 'url(img/01.jpg) no-repeat 100% 100%';
+								divs[leiArr[j]].style.backgroundSize = 'cover';
+							}
+							// alert('game over');
+							p[0].style.display = 'block';
+							p[1].innerHTML = 'game over';
+							p[1].style.display = 'block';
+							return;
+						}
+						findTar(this.attr.id,this.a);
+						//win
+						for(var j=0;j<divs.length;j++){
+							// console.log(divs[j].attr.id,divs[j].attr.isClick);
+							if(divs[j].attr.isClick == true){
+								clickedNum ++;
+								// console.log(clickedNum);
+							}
+							if(clickedNum == divs.length - leiNum){
+								// alert('win!!!');
+								p[0].style.display = 'block';
+								p[1].innerHTML = 'win!!!';
+								p[1].style.display = 'block';
+							}
+						}	
+					}
+                }
+           }
+		}
+
+		//寻找周围有没有雷，并记录个数
+		function findTar(n,o){
+			divs[n].attr.isClick = true;
+			divs[n].style.background = '';
+			for(var i=0;i<divs.length;i++){
+				if((divs[i].attr.top == o.top.t && divs[i].attr.left == o.top.l || divs[i].attr.top == o.topLeft.t && divs[i].attr.left == o.topLeft.l || divs[i].attr.top == o.topRight.t && divs[i].attr.left == o.topRight.l || divs[i].attr.top == o.right.t && divs[i].attr.left == o.right.l || divs[i].attr.top == o.rightBottom.t && divs[i].attr.left == o.rightBottom.l || divs[i].attr.top == o.bottom.t && divs[i].attr.left == o.bottom.l || divs[i].attr.top == o.leftBottom.t && divs[i].attr.left == o.leftBottom.l || divs[i].attr.top == o.left.t && divs[i].attr.left == o.left.l) && divs[i].attr.isLei == true){
+						divs[n].attr.count += 1;
+				}
+			}
+			divs[n].innerHTML = divs[n].attr.count || '';
+			divs[n].style.backgroundColor = '#fff';
+			if(divs[n].attr.count == 0){
+				for(var i=0;i<divs.length;i++){
+					if((divs[i].attr.top == o.top.t && divs[i].attr.left == o.top.l || divs[i].attr.top == o.topLeft.t && divs[i].attr.left == o.topLeft.l || divs[i].attr.top == o.topRight.t && divs[i].attr.left == o.topRight.l || divs[i].attr.top == o.right.t && divs[i].attr.left == o.right.l || divs[i].attr.top == o.rightBottom.t && divs[i].attr.left == o.rightBottom.l || divs[i].attr.top == o.bottom.t && divs[i].attr.left == o.bottom.l || divs[i].attr.top == o.leftBottom.t && divs[i].attr.left == o.leftBottom.l || divs[i].attr.top == o.left.t && divs[i].attr.left == o.left.l) && divs[i].attr.isClick == false){
+							findTar(divs[i].attr.id,divs[i].a);
+					}
+				}	
+			}else{
+				return;
+			}
+		}
+
+		//获取样式函数
+		function getStyle(obj,attr){
+			return obj.currentStyle ? obj.currentStyle[attr] : getComputedStyle(obj)[attr];
+		}
+	</script>
+</body>
+</html>
